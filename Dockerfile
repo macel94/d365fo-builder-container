@@ -17,7 +17,7 @@ ENV sa_password="_" \
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
 # make install files accessible
-COPY start.ps1 /
+COPY src\scripts\start-sql.ps1 /
 COPY SQLServer2019-DEV-x64-ENU.box /
 COPY SQLServer2019-DEV-x64-ENU.exe /
 COPY SQLServer2019-DEV-x64-ENU /
@@ -49,5 +49,5 @@ RUN Invoke-WebRequest -Uri https://vstsagentpackage.azureedge.net/agent/3.220.1/
 HEALTHCHECK CMD [ "sqlcmd", "-Q", "select 1" ]
 
 # Set up container start script
-CMD .\start -sa_password $env:sa_password -ACCEPT_EULA $env:ACCEPT_EULA -attach_dbs \"$env:attach_dbs\" -Verbose; \
+CMD .\start-sql.ps1 -sa_password $env:sa_password -ACCEPT_EULA $env:ACCEPT_EULA -attach_dbs \"$env:attach_dbs\" -Verbose; \
     .\configure-agent.ps1 -PAT $env:PAT -ORGANIZATIONURL $env:ORGANIZATIONURL -POOL $env:POOL -Verbose
