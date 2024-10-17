@@ -18,7 +18,7 @@ ENV sa_password="_" \
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
 # make install files accessible
-COPY src\scripts\start-sql.ps1 /
+COPY src/scripts/start-sql.ps1 /
 COPY SQLServer2019-DEV-x64-ENU.box /
 COPY SQLServer2019-DEV-x64-ENU.exe /
 COPY SQLServer2019-DEV-x64-ENU /
