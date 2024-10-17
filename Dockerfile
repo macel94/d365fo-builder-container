@@ -12,7 +12,8 @@ ENV sa_password="_" \
     sa_password_path="C:\ProgramData\Docker\secrets\sa-password" \
     PAT="_" \
     ORGANIZATIONURL="_" \
-    AGENT_DIR="C:\azagent"
+    AGENT_DIR="C:\azagent" \
+    POOL="windows-containers"
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
