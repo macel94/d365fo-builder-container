@@ -16,6 +16,9 @@ ENV sa_password="_" \
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
+# Download SQL Server 2022 using the EXE link
+RUN Invoke-WebRequest -Uri $env:EXE -OutFile SQL2022-SSEI-Dev.exe
+
 # make install files accessible
 COPY src/scripts/start-sql.ps1 /
 COPY SQL2022-SSEI-Dev.exe /
