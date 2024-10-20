@@ -2,9 +2,7 @@
 ## Warning: Restarting windows container causes the machine key to change and hence if you have any encryption configured then restarting SQL On Windows containers
 ## breaks the encryption key chain in SQL Server. 
 
-# Download the SQL Developer from the following location  https://go.microsoft.com/fwlink/?linkid=866662 and extract the .box and .exe files using the option: "Download Media"
-
-FROM mcr.microsoft.com/windows/servercore:ltsc2019
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
 
 ENV sa_password="_" \
     attach_dbs="[]" \
@@ -13,26 +11,25 @@ ENV sa_password="_" \
     PAT="_" \
     ORGANIZATIONURL="_" \
     AGENT_DIR="C:\azagent" \
-    POOL="windows-containers"
+    POOL="windows-containers" \
+    EXE="https://go.microsoft.com/fwlink/p/?linkid=2215158&clcid=0x409&culture=en-us&country=us"
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
 # make install files accessible
 COPY src/scripts/start-sql.ps1 /
-COPY SQLServer2019-DEV-x64-ENU.box /
-COPY SQLServer2019-DEV-x64-ENU.exe /
-COPY SQLServer2019-DEV-x64-ENU /
+COPY SQL2022-SSEI-Dev.exe /
 
 WORKDIR /
 
-RUN Start-Process -Wait -FilePath .\SQLServer2019-DEV-x64-ENU.exe -ArgumentList /qs, /x:setup ; \
+RUN Start-Process -Wait -FilePath .\SQL2022-SSEI-Dev.exe -ArgumentList /qs, /x:setup ; \
         .\setup\setup.exe /q /ACTION=Install /INSTANCENAME=MSSQLSERVER /FEATURES=SQLEngine /UPDATEENABLED=0 /SQLSVCACCOUNT='NT AUTHORITY\NETWORK SERVICE' /SQLSYSADMINACCOUNTS='BUILTIN\ADMINISTRATORS' /TCPENABLED=1 /NPENABLED=0 /IACCEPTSQLSERVERLICENSETERMS ; \
-        Remove-Item -Recurse -Force SQLServer2019-DEV-x64-ENU.exe, SQLServer2019-DEV-x64-ENU.box, setup
+        Remove-Item -Recurse -Force SQL2022-SSEI-Dev.exe, setup
 
 RUN stop-service MSSQLSERVER ; \
-        set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql15.MSSQLSERVER\mssqlserver\supersocketnetlib\tcp\ipall' -name tcpdynamicports -value '' ; \
-        set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql15.MSSQLSERVER\mssqlserver\supersocketnetlib\tcp\ipall' -name tcpport -value 1433 ; \
-        set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql15.MSSQLSERVER\mssqlserver\' -name LoginMode -value 2 ;
+        set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql16.MSSQLSERVER\mssqlserver\supersocketnetlib\tcp\ipall' -name tcpdynamicports -value '' ; \
+        set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql16.MSSQLSERVER\mssqlserver\supersocketnetlib\tcp\ipall' -name tcpport -value 1433 ; \
+        set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql16.MSSQLSERVER\mssqlserver\' -name LoginMode -value 2 ;
 
 # Install Visual Studio Community 2022
 RUN Invoke-WebRequest -Uri https://aka.ms/vs/22/release/vs_community.exe -OutFile vs_installer.exe; \
