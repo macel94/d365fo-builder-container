@@ -24,10 +24,13 @@ WORKDIR /
 # Download SQL Server 2022 using the EXE link
 RUN Invoke-WebRequest -Uri $env:EXE -OutFile SQL2022-SSEI-Dev.exe
 
-# Extract SQL Server Setup
+# Extract SQL Server Setup with improved error handling and more debug information
 RUN Start-Process -Wait -FilePath .\SQL2022-SSEI-Dev.exe -ArgumentList '/qs', '/x:setup' -PassThru; \
+    Start-Sleep -Seconds 5; \
     if (!(Test-Path -Path .\setup)) { \
-        Write-Host 'Setup extraction failed, setup folder not found'; exit 1; \
+        Write-Host 'Setup extraction failed, setup folder not found. Listing current directory contents for debugging:'; \
+        Get-ChildItem -Path .; \
+        exit 1; \
     }
 
 # Install SQL Server
