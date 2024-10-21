@@ -16,14 +16,14 @@ ENV sa_password="_" \
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
-# Download SQL Server 2022 using the EXE link
-RUN Invoke-WebRequest -Uri $env:EXE -OutFile SQL2022-SSEI-Dev.exe
 
 # make install files accessible
 COPY src/scripts/start-sql.ps1 /
-COPY SQL2022-SSEI-Dev.exe /
 
 WORKDIR /
+
+# Download SQL Server 2022 using the EXE link
+RUN Invoke-WebRequest -Uri $env:EXE -OutFile SQL2022-SSEI-Dev.exe
 
 RUN Start-Process -Wait -FilePath .\SQL2022-SSEI-Dev.exe -ArgumentList /qs, /x:setup ; \
         .\setup\setup.exe /q /ACTION=Install /INSTANCENAME=MSSQLSERVER /FEATURES=SQLEngine /UPDATEENABLED=0 /SQLSVCACCOUNT='NT AUTHORITY\NETWORK SERVICE' /SQLSYSADMINACCOUNTS='BUILTIN\ADMINISTRATORS' /TCPENABLED=1 /NPENABLED=0 /IACCEPTSQLSERVERLICENSETERMS ; \
