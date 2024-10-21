@@ -24,22 +24,8 @@ WORKDIR /
 # Download SQL Server 2022 using the EXE link
 RUN Invoke-WebRequest -Uri $env:EXE -OutFile SQL2022-SSEI-Dev.exe
 
-# Extract SQL Server Setup with improved error handling and more debug information
-RUN Start-Process -Wait -FilePath .\SQL2022-SSEI-Dev.exe -ArgumentList '/qs', '/x:setup' -PassThru; \
-    Start-Sleep -Seconds 5; \
-    if (!(Test-Path -Path .\setup)) { \
-        Write-Host 'Setup extraction failed, setup folder not found. Listing current directory contents for debugging:'; \
-        Get-ChildItem -Path .; \
-        exit 1; \
-    }
-
-# Install SQL Server
-RUN if (Test-Path -Path .\setup\setup.exe) { \
-        Start-Process -Wait -FilePath .\setup\setup.exe -ArgumentList '/q', '/ACTION=Install', '/INSTANCENAME=MSSQLSERVER', '/FEATURES=SQLEngine', '/UPDATEENABLED=0', '/SQLSVCACCOUNT=NT AUTHORITY\NETWORK SERVICE', '/SQLSYSADMINACCOUNTS=BUILTIN\ADMINISTRATORS', '/TCPENABLED=1', '/NPENABLED=0', '/IACCEPTSQLSERVERLICENSETERMS'; \
-    } else { \
-        Write-Host 'Setup.exe not found in the expected path'; exit 1; \
-    } ; \
-    Remove-Item -Recurse -Force SQL2022-SSEI-Dev.exe, setup
+RUN Start-Process -Wait -FilePath .\SQL2022-SSEI-Dev.exe -ArgumentList /qs /ACTION=Install /INSTANCENAME=MSSQLSERVER /FEATURES=SQLEngine /UPDATEENABLED=0 /SQLSVCACCOUNT='NT AUTHORITY\NETWORK SERVICE' /SQLSYSADMINACCOUNTS='BUILTIN\ADMINISTRATORS' /TCPENABLED=1 /NPENABLED=0 /IACCEPTSQLSERVERLICENSETERMS ; \
+        Remove-Item -Recurse -Force SQL2022-SSEI-Dev.exe
 
 # Stop SQL Server and configure ports
 RUN stop-service MSSQLSERVER ; \
