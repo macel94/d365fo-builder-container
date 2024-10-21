@@ -26,8 +26,13 @@ WORKDIR /
 RUN Invoke-WebRequest -Uri $env:EXE -OutFile SQL2022-SSEI-Dev.exe
 
 RUN Start-Process -Wait -FilePath .\SQL2022-SSEI-Dev.exe -ArgumentList /qs, /x:setup ; \
+    Get-ChildItem -Path .\setup \
+    if (Test-Path -Path .\setup\setup.exe) { \
         .\setup\setup.exe /q /ACTION=Install /INSTANCENAME=MSSQLSERVER /FEATURES=SQLEngine /UPDATEENABLED=0 /SQLSVCACCOUNT='NT AUTHORITY\NETWORK SERVICE' /SQLSYSADMINACCOUNTS='BUILTIN\ADMINISTRATORS' /TCPENABLED=1 /NPENABLED=0 /IACCEPTSQLSERVERLICENSETERMS ; \
-        Remove-Item -Recurse -Force SQL2022-SSEI-Dev.exe, setup
+    } else { \
+        Write-Host 'Setup.exe not found in the expected path'; exit 1; \
+    } ; \
+    Remove-Item -Recurse -Force SQL2022-SSEI-Dev.exe, setup
 
 RUN stop-service MSSQLSERVER ; \
         set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql16.MSSQLSERVER\mssqlserver\supersocketnetlib\tcp\ipall' -name tcpdynamicports -value '' ; \
