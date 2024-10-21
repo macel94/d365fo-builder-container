@@ -25,9 +25,10 @@ WORKDIR /
 RUN Invoke-WebRequest -Uri $env:EXE -OutFile SQL2022-SSEI-Dev.exe
 
 # Install SQL Server directly without extraction and log the process
-RUN Start-Process -Wait -FilePath .\SQL2022-SSEI-Dev.exe -ArgumentList '/ACTION=Install', '/INSTANCENAME=MSSQLSERVER', '/FEATURES=SQLEngine', '/UPDATEENABLED=0', '/SQLSVCACCOUNT=NT AUTHORITY\NETWORK SERVICE', '/SQLSYSADMINACCOUNTS=BUILTIN\ADMINISTRATORS', '/TCPENABLED=1', '/NPENABLED=0', '/IACCEPTSQLSERVERLICENSETERMS', '/QS', '/INDICATEPROGRESS', '/ERRORREPORTING=1', '/SECURITYMODE=SQL' -RedirectStandardOutput ./install_log.txt; \
+RUN Start-Process -Wait -FilePath .\SQL2022-SSEI-Dev.exe -ArgumentList '/ACTION=Install', '/INSTANCENAME=MSSQLSERVER', '/FEATURES=SQLEngine', '/UPDATEENABLED=0', '/SQLSVCACCOUNT=NT AUTHORITY\NETWORK SERVICE', '/SQLSYSADMINACCOUNTS=BUILTIN\ADMINISTRATORS', '/TCPENABLED=1', '/NPENABLED=0', '/IACCEPTSQLSERVERLICENSETERMS', '/QS', '/INDICATEPROGRESS', '/ERRORREPORTING=1', '/SECURITYMODE=SQL' -RedirectStandardOutput ./install_log.txt -RedirectStandardError ./install_error_log.txt; \
     Get-Content ./install_log.txt; \
-    Remove-Item -Recurse -Force SQL2022-SSEI-Dev.exe, ./install_log.txt
+    Get-Content ./install_error_log.txt; \
+    Remove-Item -Recurse -Force SQL2022-SSEI-Dev.exe, ./install_log.txt, ./install_error_log.txt
 
 # Wait for SQL Server service to be created, then start it
 RUN $serviceName = 'MSSQLSERVER'; \
