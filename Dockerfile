@@ -16,7 +16,6 @@ ENV sa_password="_" \
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
-
 # make install files accessible
 COPY src/scripts/start-sql.ps1 /
 
@@ -25,19 +24,25 @@ WORKDIR /
 # Download SQL Server 2022 using the EXE link
 RUN Invoke-WebRequest -Uri $env:EXE -OutFile SQL2022-SSEI-Dev.exe
 
-RUN Start-Process -Wait -FilePath .\SQL2022-SSEI-Dev.exe -ArgumentList /qs, /x:setup ; \
-    Get-ChildItem -Path .\setup ; \
-    if (Test-Path -Path .\setup\setup.exe) { \
-        .\setup\setup.exe /q /ACTION=Install /INSTANCENAME=MSSQLSERVER /FEATURES=SQLEngine /UPDATEENABLED=0 /SQLSVCACCOUNT='NT AUTHORITY\NETWORK SERVICE' /SQLSYSADMINACCOUNTS='BUILTIN\ADMINISTRATORS' /TCPENABLED=1 /NPENABLED=0 /IACCEPTSQLSERVERLICENSETERMS ; \
+# Extract SQL Server Setup
+RUN Start-Process -Wait -FilePath .\SQL2022-SSEI-Dev.exe -ArgumentList '/qs', '/x:setup' -PassThru; \
+    if (!(Test-Path -Path .\setup)) { \
+        Write-Host 'Setup extraction failed, setup folder not found'; exit 1; \
+    }
+
+# Install SQL Server
+RUN if (Test-Path -Path .\setup\setup.exe) { \
+        Start-Process -Wait -FilePath .\setup\setup.exe -ArgumentList '/q', '/ACTION=Install', '/INSTANCENAME=MSSQLSERVER', '/FEATURES=SQLEngine', '/UPDATEENABLED=0', '/SQLSVCACCOUNT=NT AUTHORITY\NETWORK SERVICE', '/SQLSYSADMINACCOUNTS=BUILTIN\ADMINISTRATORS', '/TCPENABLED=1', '/NPENABLED=0', '/IACCEPTSQLSERVERLICENSETERMS'; \
     } else { \
         Write-Host 'Setup.exe not found in the expected path'; exit 1; \
     } ; \
     Remove-Item -Recurse -Force SQL2022-SSEI-Dev.exe, setup
 
+# Stop SQL Server and configure ports
 RUN stop-service MSSQLSERVER ; \
-        set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql16.MSSQLSERVER\mssqlserver\supersocketnetlib\tcp\ipall' -name tcpdynamicports -value '' ; \
-        set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql16.MSSQLSERVER\mssqlserver\supersocketnetlib\tcp\ipall' -name tcpport -value 1433 ; \
-        set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql16.MSSQLSERVER\mssqlserver\' -name LoginMode -value 2 ;
+    set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql16.MSSQLSERVER\mssqlserver\supersocketnetlib\tcp\ipall' -name tcpdynamicports -value '' ; \
+    set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql16.MSSQLSERVER\mssqlserver\supersocketnetlib\tcp\ipall' -name tcpport -value 1433 ; \
+    set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql16.MSSQLSERVER\mssqlserver\' -name LoginMode -value 2 ;
 
 # Install Visual Studio Community 2022
 RUN Invoke-WebRequest -Uri https://aka.ms/vs/22/release/vs_community.exe -OutFile vs_installer.exe; \
@@ -55,5 +60,5 @@ RUN Invoke-WebRequest -Uri https://vstsagentpackage.azureedge.net/agent/3.220.1/
 HEALTHCHECK CMD [ "sqlcmd", "-Q", "select 1" ]
 
 # Set up container start script
-CMD .\start-sql.ps1 -sa_password $env:sa_password -ACCEPT_EULA $env:ACCEPT_EULA -attach_dbs \"$env:attach_dbs\" -Verbose; \
+CMD .\start-sql.ps1 -sa_password $env:sa_password -ACCEPT_EULA $env:ACCEPT_EULA -attach_dbs "$env:attach_dbs" -Verbose; \
     .\configure-agent.ps1 -PAT $env:PAT -ORGANIZATIONURL $env:ORGANIZATIONURL -POOL $env:POOL -Verbose
