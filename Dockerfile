@@ -6,7 +6,7 @@ FROM mcr.microsoft.com/windows/servercore:ltsc2022
 
 ENV sa_password="_" \
     attach_dbs="[]" \
-    ACCEPT_EULA="_" \
+    ACCEPT_EULA="Y" \
     sa_password_path="C:\ProgramData\Docker\secrets\sa-password" \
     PAT="_" \
     ORGANIZATIONURL="_" \
@@ -24,9 +24,10 @@ WORKDIR /
 # Download SQL Server 2022 using the EXE link
 RUN Invoke-WebRequest -Uri $env:EXE -OutFile SQL2022-SSEI-Dev.exe
 
-# Install SQL Server directly without extraction and log the process
+# Install SQL Server using the downloaded media and log the process
 RUN & { \
-    .\SQL2022-SSEI-Dev.exe '/ACTION=Install', '/INSTANCENAME=MSSQLSERVER', '/FEATURES=SQLEngine', '/UPDATEENABLED=0', '/SQLSVCACCOUNT=NT AUTHORITY\NETWORK SERVICE', '/SQLSYSADMINACCOUNTS=BUILTIN\ADMINISTRATORS', '/TCPENABLED=1', '/NPENABLED=0', '/IACCEPTSQLSERVERLICENSETERMS', '/QS', '/INDICATEPROGRESS', '/ERRORREPORTING=1', '/SECURITYMODE=SQL' > ./install_log.txt 2> ./install_error_log.txt; \
+    Start-Process -FilePath .\SQL2022-SSEI-Dev.exe -ArgumentList '/ACTION=Download', '/MEDIAPATH=C:\setup' -Wait; \
+    .\setup\setup.exe '/Q', '/ACTION=Install', '/INSTANCENAME=MSSQLSERVER', '/FEATURES=SQLEngine', '/UPDATEENABLED=0', '/SQLSVCACCOUNT="NT AUTHORITY\NETWORK SERVICE"', '/SQLSYSADMINACCOUNTS="BUILTIN\ADMINISTRATORS"', '/TCPENABLED=1', '/NPENABLED=0', '/IACCEPTSQLSERVERLICENSETERMS', '/SECURITYMODE=SQL', '/SAPWD="' + $env:sa_password + '"' > ./install_log.txt 2> ./install_error_log.txt; \
     if (Test-Path ./install_log.txt) { \
         $logContent = Get-Content ./install_log.txt; \
         if ($logContent) { \
@@ -47,7 +48,7 @@ RUN & { \
     } else { \
         Write-Host 'Error log file not found.'; \
     }; \
-    Remove-Item -Recurse -Force SQL2022-SSEI-Dev.exe, ./install_log.txt, ./install_error_log.txt \
+    Remove-Item -Recurse -Force SQL2022-SSEI-Dev.exe, ./install_log.txt, ./install_error_log.txt, ./setup \
 }
 
 # Wait for SQL Server service to be created, then start it
