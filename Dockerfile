@@ -26,8 +26,26 @@ RUN Invoke-WebRequest -Uri $env:EXE -OutFile SQL2022-SSEI-Dev.exe
 
 # Install SQL Server directly without extraction and log the process
 RUN Start-Process -Wait -FilePath .\SQL2022-SSEI-Dev.exe -ArgumentList '/ACTION=Install', '/INSTANCENAME=MSSQLSERVER', '/FEATURES=SQLEngine', '/UPDATEENABLED=0', '/SQLSVCACCOUNT=NT AUTHORITY\NETWORK SERVICE', '/SQLSYSADMINACCOUNTS=BUILTIN\ADMINISTRATORS', '/TCPENABLED=1', '/NPENABLED=0', '/IACCEPTSQLSERVERLICENSETERMS', '/QS', '/INDICATEPROGRESS', '/ERRORREPORTING=1', '/SECURITYMODE=SQL' -RedirectStandardOutput ./install_log.txt -RedirectStandardError ./install_error_log.txt; \
-    Get-Content ./install_log.txt; \
-    Get-Content ./install_error_log.txt; \
+    if (Test-Path ./install_log.txt) { \
+        $logContent = Get-Content ./install_log.txt; \
+        if ($logContent) { \
+            Write-Host $logContent; \
+        } else { \
+            Write-Host 'Log file is empty.'; \
+        } \
+    } else { \
+        Write-Host 'Log file not found.'; \
+    }; \
+    if (Test-Path ./install_error_log.txt) { \
+        $errorContent = Get-Content ./install_error_log.txt; \
+        if ($errorContent) { \
+            Write-Host $errorContent; \
+        } else { \
+            Write-Host 'Error log file is empty.'; \
+        } \
+    } else { \
+        Write-Host 'Error log file not found.'; \
+    }; \
     Remove-Item -Recurse -Force SQL2022-SSEI-Dev.exe, ./install_log.txt, ./install_error_log.txt
 
 # Wait for SQL Server service to be created, then start it
