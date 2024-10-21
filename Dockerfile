@@ -35,10 +35,10 @@ RUN $serviceName = 'MSSQLSERVER'; \
     while (-not (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) -and $attempt -lt 20) { \
         Start-Sleep -Seconds 10; \
         $attempt++; \
-        Write-Host ("Attempt $attempt - Waiting for $serviceName service..."); \
+        Write-Host ('Attempt ' + $attempt + ' - Waiting for ' + $serviceName + ' service...'); \
     }; \
     if (-not (Get-Service -Name $serviceName -ErrorAction SilentlyContinue)) { \
-        Write-Host ("SQL Server service $serviceName not found. Exiting..."); \
+        Write-Host ('SQL Server service ' + $serviceName + ' not found. Exiting...'); \
         exit 1; \
     } \
     else { \
