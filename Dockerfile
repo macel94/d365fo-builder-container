@@ -24,9 +24,10 @@ WORKDIR /
 # Download SQL Server 2022 using the EXE link
 RUN Invoke-WebRequest -Uri $env:EXE -OutFile SQL2022-SSEI-Dev.exe
 
-# Install SQL Server directly without extraction
-RUN Start-Process -Wait -FilePath .\SQL2022-SSEI-Dev.exe -ArgumentList '/ACTION=Install', '/INSTANCENAME=MSSQLSERVER', '/FEATURES=SQLEngine', '/UPDATEENABLED=0', '/SQLSVCACCOUNT=NT AUTHORITY\NETWORK SERVICE', '/SQLSYSADMINACCOUNTS=BUILTIN\ADMINISTRATORS', '/TCPENABLED=1', '/NPENABLED=0', '/IACCEPTSQLSERVERLICENSETERMS', '/QS'; \
-    Remove-Item -Recurse -Force SQL2022-SSEI-Dev.exe
+# Install SQL Server directly without extraction and log the process
+RUN Start-Process -Wait -FilePath .\SQL2022-SSEI-Dev.exe -ArgumentList '/ACTION=Install', '/INSTANCENAME=MSSQLSERVER', '/FEATURES=SQLEngine', '/UPDATEENABLED=0', '/SQLSVCACCOUNT=NT AUTHORITY\NETWORK SERVICE', '/SQLSYSADMINACCOUNTS=BUILTIN\ADMINISTRATORS', '/TCPENABLED=1', '/NPENABLED=0', '/IACCEPTSQLSERVERLICENSETERMS', '/QS', '/INDICATEPROGRESS', '/ERRORREPORTING=1', '/SECURITYMODE=SQL' -RedirectStandardOutput ./install_log.txt; \
+    Get-Content ./install_log.txt; \
+    Remove-Item -Recurse -Force SQL2022-SSEI-Dev.exe, ./install_log.txt
 
 # Wait for SQL Server service to be created, then start it
 RUN $serviceName = 'MSSQLSERVER'; \
@@ -38,18 +39,20 @@ RUN $serviceName = 'MSSQLSERVER'; \
         Write-Host ('Attempt ' + $attempt + ' - Waiting for ' + $serviceName + ' service...'); \
     }; \
     if (-not (Get-Service -Name $serviceName -ErrorAction SilentlyContinue)) { \
-        Write-Host ('SQL Server service ' + $serviceName + ' not found. Exiting...'); \
-        exit 1; \
-    } \
-    else { \
+        Write-Host ('SQL Server service ' + $serviceName + ' not found. Attempting to start manually...'); \
         Start-Service -Name $serviceName; \
+        Start-Sleep -Seconds 10; \
+        if (-not (Get-Service -Name $serviceName -ErrorAction SilentlyContinue)) { \
+            Write-Host ('SQL Server service ' + $serviceName + ' still not available. Exiting...'); \
+            exit 1; \
+        } \
     }
 
 # Stop SQL Server and configure ports
-RUN stop-service MSSQLSERVER ; \
-    set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql16.MSSQLSERVER\mssqlserver\supersocketnetlib\tcp\ipall' -name tcpdynamicports -value '' ; \
-    set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql16.MSSQLSERVER\mssqlserver\supersocketnetlib\tcp\ipall' -name tcpport -value 1433 ; \
-    set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql16.MSSQLSERVER\mssqlserver\' -name LoginMode -value 2 ;
+RUN Stop-Service MSSQLSERVER ; \
+    Set-ItemProperty -Path 'HKLM:\software\microsoft\microsoft sql server\mssql16.MSSQLSERVER\mssqlserver\supersocketnetlib\tcp\ipall' -Name tcpdynamicports -Value ''; \
+    Set-ItemProperty -Path 'HKLM:\software\microsoft\microsoft sql server\mssql16.MSSQLSERVER\mssqlserver\supersocketnetlib\tcp\ipall' -Name tcpport -Value 1433; \
+    Set-ItemProperty -Path 'HKLM:\software\microsoft\microsoft sql server\mssql16.MSSQLSERVER\mssqlserver\' -Name LoginMode -Value 2;
 
 # Install Visual Studio Community 2022
 RUN Invoke-WebRequest -Uri https://aka.ms/vs/22/release/vs_community.exe -OutFile vs_installer.exe; \
