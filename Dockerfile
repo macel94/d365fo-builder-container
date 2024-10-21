@@ -28,6 +28,20 @@ RUN Invoke-WebRequest -Uri $env:EXE -OutFile SQL2022-SSEI-Dev.exe
 RUN Start-Process -Wait -FilePath .\SQL2022-SSEI-Dev.exe -ArgumentList '/ACTION=Install', '/INSTANCENAME=MSSQLSERVER', '/FEATURES=SQLEngine', '/UPDATEENABLED=0', '/SQLSVCACCOUNT=NT AUTHORITY\NETWORK SERVICE', '/SQLSYSADMINACCOUNTS=BUILTIN\ADMINISTRATORS', '/TCPENABLED=1', '/NPENABLED=0', '/IACCEPTSQLSERVERLICENSETERMS', '/QS'; \
     Remove-Item -Recurse -Force SQL2022-SSEI-Dev.exe
 
+# Wait for SQL Server service to be created
+RUN $serviceName = 'MSSQLSERVER'; \
+    Write-Host 'Waiting for SQL Server service to be available...'; \
+    $attempt = 0; \
+    while (-not (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) -and $attempt -lt 20) { \
+        Start-Sleep -Seconds 10; \
+        $attempt++; \
+        Write-Host "Attempt $attempt: Waiting for $serviceName service..."; \
+    }; \
+    if (-not (Get-Service -Name $serviceName -ErrorAction SilentlyContinue)) { \
+        Write-Host "SQL Server service $serviceName not found. Exiting..."; \
+        exit 1; \
+    }
+
 # Stop SQL Server and configure ports
 RUN stop-service MSSQLSERVER ; \
     set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql16.MSSQLSERVER\mssqlserver\supersocketnetlib\tcp\ipall' -name tcpdynamicports -value '' ; \
